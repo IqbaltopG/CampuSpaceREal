@@ -7,6 +7,7 @@ import java.awt.event.ActionListener;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.security.MessageDigest;
 
 public class CampuspaceLogin extends JFrame {
     private JTextField usernameField;
@@ -184,11 +185,14 @@ public class CampuspaceLogin extends JFrame {
         String password = new String(passwordField.getPassword());
 
         try (Connection connection = DB.Connection.getConnection()) {
+            // Hash the password
+            String hashedPassword = hashPassword(password);
+
             // Update the table name to 'user'
             String query = "SELECT * FROM user WHERE username = ? AND password = ?";
             PreparedStatement statement = connection.prepareStatement(query);
             statement.setString(1, username);
-            statement.setString(2, password);
+            statement.setString(2, hashedPassword);
 
             ResultSet resultSet = statement.executeQuery();
             if (resultSet.next()) {
@@ -201,6 +205,19 @@ public class CampuspaceLogin extends JFrame {
             ex.printStackTrace();
             JOptionPane.showMessageDialog(this, "An error occurred while connecting to the database.");
         }
+    }
+
+    private String hashPassword(String password) throws Exception {
+        MessageDigest md = MessageDigest.getInstance("SHA-256");
+        byte[] hash = md.digest(password.getBytes("UTF-8"));
+        StringBuilder hexString = new StringBuilder();
+        for (byte b : hash) {
+            String hex = Integer.toHexString(0xff & b);
+            if (hex.length() == 1)
+                hexString.append('0');
+            hexString.append(hex);
+        }
+        return hexString.toString();
     }
 
     public static void main(String[] args) {

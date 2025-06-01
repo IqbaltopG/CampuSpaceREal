@@ -6,6 +6,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.security.MessageDigest;
 
 public class CampuspaceRegister extends JFrame {
     private JTextField usernameField;
@@ -109,10 +110,13 @@ public class CampuspaceRegister extends JFrame {
         }
 
         try (Connection connection = DB.Connection.getConnection()) {
+            // Hash the password
+            String hashedPassword = hashPassword(password);
+
             String query = "INSERT INTO user (username, password, role) VALUES (?, ?, 'user')";
             PreparedStatement statement = connection.prepareStatement(query);
             statement.setString(1, username);
-            statement.setString(2, password);
+            statement.setString(2, hashedPassword);
 
             int rowsInserted = statement.executeUpdate();
             if (rowsInserted > 0) {
@@ -125,5 +129,18 @@ public class CampuspaceRegister extends JFrame {
             ex.printStackTrace();
             JOptionPane.showMessageDialog(this, "An error occurred while connecting to the database.");
         }
+    }
+
+    private String hashPassword(String password) throws Exception {
+        MessageDigest md = MessageDigest.getInstance("SHA-256");
+        byte[] hash = md.digest(password.getBytes("UTF-8"));
+        StringBuilder hexString = new StringBuilder();
+        for (byte b : hash) {
+            String hex = Integer.toHexString(0xff & b);
+            if (hex.length() == 1)
+                hexString.append('0');
+            hexString.append(hex);
+        }
+        return hexString.toString();
     }
 }
