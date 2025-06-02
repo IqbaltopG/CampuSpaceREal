@@ -197,7 +197,11 @@ public class CampuspaceLogin extends JFrame {
             ResultSet resultSet = statement.executeQuery();
             if (resultSet.next()) {
                 JOptionPane.showMessageDialog(this, "Login successful!");
-                // Proceed to the next screen or functionality
+                // Open dashboard and close login window
+                SwingUtilities.invokeLater(() -> {
+                    new CampuSpaceDashboard();
+                });
+                dispose();
             } else {
                 JOptionPane.showMessageDialog(this, "Invalid username or password.");
             }
