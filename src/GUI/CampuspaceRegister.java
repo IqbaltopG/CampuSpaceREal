@@ -113,18 +113,15 @@ public class CampuspaceRegister extends JFrame {
             // Hash the password
             String hashedPassword = hashPassword(password);
 
-            String query = "INSERT INTO user (username, password, role) VALUES (?, ?, 'user')";
-            PreparedStatement statement = connection.prepareStatement(query);
-            statement.setString(1, username);
-            statement.setString(2, hashedPassword);
+            String query = "INSERT INTO user (username, password, role) VALUES (?, ?, ?)";
+            PreparedStatement ps = connection.prepareStatement(query);
+            ps.setString(1, username);
+            ps.setString(2, hashedPassword);
+            ps.setString(3, "user"); // atau "admin", "superadmin" jika ingin
+            ps.executeUpdate();
 
-            int rowsInserted = statement.executeUpdate();
-            if (rowsInserted > 0) {
-                JOptionPane.showMessageDialog(this, "Registration successful!");
-                dispose(); // Close the registration form
-            } else {
-                JOptionPane.showMessageDialog(this, "Registration failed. Please try again.");
-            }
+            JOptionPane.showMessageDialog(this, "Registration successful!");
+            dispose(); // Close the registration form
         } catch (Exception ex) {
             ex.printStackTrace();
             JOptionPane.showMessageDialog(this, "An error occurred while connecting to the database.");

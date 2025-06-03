@@ -1,13 +1,12 @@
 package GUI;
 
+import DB.Users;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.security.MessageDigest;
+import java.util.Optional;
 
 public class CampuspaceLogin extends JFrame {
     private JTextField usernameField;
@@ -183,45 +182,22 @@ public class CampuspaceLogin extends JFrame {
     private void handleLogin() {
         String username = usernameField.getText();
         String password = new String(passwordField.getPassword());
+        System.out.println("DEBUG: username=" + username + ", password=" + password);
 
-        try (Connection connection = DB.Connection.getConnection()) {
-            // Hash the password
-            String hashedPassword = hashPassword(password);
-
-            // Update the table name to 'user'
-            String query = "SELECT * FROM user WHERE username = ? AND password = ?";
-            PreparedStatement statement = connection.prepareStatement(query);
-            statement.setString(1, username);
-            statement.setString(2, hashedPassword);
-
-            ResultSet resultSet = statement.executeQuery();
-            if (resultSet.next()) {
-                JOptionPane.showMessageDialog(this, "Login successful!");
-                // Open dashboard and close login window
-                SwingUtilities.invokeLater(() -> {
-                    new CampuSpaceDashboard();
-                });
-                dispose();
-            } else {
-                JOptionPane.showMessageDialog(this, "Invalid username or password.");
-            }
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "An error occurred while connecting to the database.");
+        Optional<Users.User> userOpt = Users.authenticate(username, password);
+        if (userOpt.isPresent()) {
+            Users.User user = userOpt.get();
+            JOptionPane.showMessageDialog(this,
+                    "Login berhasil!\nSelamat datang, " + user.username + " (" + user.role + ")",
+                    "Login Sukses", JOptionPane.INFORMATION_MESSAGE);
+            // Kirim userId ke dashboard
+            new CampuSpaceDashboard(user.userId, user.role);
+            this.dispose();
+        } else {
+            JOptionPane.showMessageDialog(this,
+                    "Username atau password salah.",
+                    "Login Gagal", JOptionPane.ERROR_MESSAGE);
         }
-    }
-
-    private String hashPassword(String password) throws Exception {
-        MessageDigest md = MessageDigest.getInstance("SHA-256");
-        byte[] hash = md.digest(password.getBytes("UTF-8"));
-        StringBuilder hexString = new StringBuilder();
-        for (byte b : hash) {
-            String hex = Integer.toHexString(0xff & b);
-            if (hex.length() == 1)
-                hexString.append('0');
-            hexString.append(hex);
-        }
-        return hexString.toString();
     }
 
     public static void main(String[] args) {

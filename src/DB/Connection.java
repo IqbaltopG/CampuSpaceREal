@@ -20,3 +20,5 @@ public class Connection {
         return connection;
     }
 }
+
+// java.sql.Connection conn = DB.Connection.getConnection();

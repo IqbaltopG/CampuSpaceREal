@@ -1,18 +1,23 @@
 package GUI;
 
 import java.awt.*;
-import java.io.File;
+// import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import javax.swing.*;
+import javax.swing.Timer; // Add this import
 
 public class CampuSpaceDashboard extends JFrame {
+    private int userId;
+    private String role;
     private final JLabel timeLabel;
     private final JPanel contentPanel;
     private final DefaultListModel<String> notificationList = new DefaultListModel<>();
-    private File selectedPDF = null;
 
-    public CampuSpaceDashboard() {
+    public CampuSpaceDashboard(int userId, String role) {
+        this.userId = userId;
+        this.role = role;
+
         setTitle("CampuSpace - Dashboard");
         setSize(1000, 600);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
@@ -35,6 +40,19 @@ public class CampuSpaceDashboard extends JFrame {
         reserveBtn.setBounds(20, 120, 160, 30);
         sidebar.add(reserveBtn);
 
+        // Menu admin dan superadmin
+        if ("admin".equals(role) || "superadmin".equals(role)) {
+            JButton adminBtn = createSidebarButton("Admin Menu");
+            adminBtn.setBounds(20, 160, 160, 30);
+            sidebar.add(adminBtn);
+            adminBtn.addActionListener(evt -> showAdminMenuPanel());
+        }
+        if ("superadmin".equals(role)) {
+            JButton superAdminBtn = createSidebarButton("Super Admin Menu");
+            superAdminBtn.setBounds(20, 200, 160, 30);
+            sidebar.add(superAdminBtn);
+        }
+
         JPanel topBar = new JPanel(new BorderLayout());
         topBar.setBounds(200, 0, 800, 40);
         topBar.setBackground(Color.WHITE);
@@ -42,6 +60,7 @@ public class CampuSpaceDashboard extends JFrame {
         timeLabel = createLabel("", 18, true, Color.BLACK);
         timeLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 20));
         timeLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+        timeLabel.setPreferredSize(new Dimension(200, 40)); // Add this line
         updateTime();
         new Timer(1000, evt -> updateTime()).start();
         topBar.add(timeLabel, BorderLayout.EAST);
@@ -62,7 +81,7 @@ public class CampuSpaceDashboard extends JFrame {
         contentPanel.setBackground(Color.WHITE);
 
         dashBtn.addActionListener(evt -> renderDashboard());
-        reserveBtn.addActionListener(evt -> renderReserveRoom());
+        reserveBtn.addActionListener(evt -> showReserveRoomPanel());
 
         renderDashboard();
 
@@ -75,7 +94,7 @@ public class CampuSpaceDashboard extends JFrame {
     private void renderDashboard() {
         contentPanel.removeAll();
 
-        JLabel welcome = createLabel("Selamat Datang USER", 22, true, Color.BLACK);
+        JLabel welcome = createLabel("Selamat Datang (" + role + ")", 22, true, Color.BLACK);
         welcome.setBounds(20, 20, 400, 30);
         contentPanel.add(welcome);
 
@@ -106,131 +125,22 @@ public class CampuSpaceDashboard extends JFrame {
         }
     }
 
-    private void renderReserveRoom() {
+    private void showReserveRoomPanel() {
         contentPanel.removeAll();
-
-        JLabel title = createLabel("Form Peminjaman Ruangan", 20, true, Color.BLACK);
-        title.setBounds(20, 20, 400, 30);
-        contentPanel.add(title);
-
-        int y = 70, spacing = 40;
-
-        JTextField nameField = new JTextField();
-        JTextField nimField = new JTextField();
-
-        JSpinner dateSpinner = new JSpinner(new SpinnerDateModel());
-        JSpinner.DateEditor editor = new JSpinner.DateEditor(dateSpinner, "yyyy-MM-dd");
-        dateSpinner.setEditor(editor);
-
-        JComboBox<String> sessionBox = new JComboBox<>(new String[] { "Sesi 1", "Sesi 2", "Sesi 3", "Sesi 4" });
-        JComboBox<String> buildingBox = new JComboBox<>(new String[] {
-                "Gedung A", "Gedung B", "Gedung C", "Gedung D", "Gedung E", "Gedung F", "Gedung G"
-        });
-        JComboBox<String> floorBox = new JComboBox<>(new String[] { "1", "2", "3" });
-        JComboBox<String> roomBox = new JComboBox<>();
-        JTextField purposeField = new JTextField();
-
-        Runnable updateRooms = () -> {
-            roomBox.removeAllItems();
-            String gedung = (String) buildingBox.getSelectedItem();
-            String lantai = (String) floorBox.getSelectedItem();
-
-            if (gedung != null && lantai != null) {
-                char kodeGedung = gedung.charAt(gedung.length() - 1);
-                for (int i = 1; i <= 5; i++) {
-                    String room = kodeGedung + lantai + String.format("%02d", i);
-                    roomBox.addItem(room);
-                }
-            }
-        };
-        buildingBox.addActionListener(evt -> updateRooms.run());
-        floorBox.addActionListener(evt -> updateRooms.run());
-        updateRooms.run();
-
-        contentPanel.add(createLabel("Nama Lengkap:", 14, false, Color.BLACK)).setBounds(20, y, 150, 25);
-        nameField.setBounds(180, y, 250, 25);
-        contentPanel.add(nameField);
-        y += spacing;
-
-        contentPanel.add(createLabel("NIM:", 14, false, Color.BLACK)).setBounds(20, y, 150, 25);
-        nimField.setBounds(180, y, 250, 25);
-        contentPanel.add(nimField);
-        y += spacing;
-
-        contentPanel.add(createLabel("Tanggal:", 14, false, Color.BLACK)).setBounds(20, y, 150, 25);
-        dateSpinner.setBounds(180, y, 250, 25);
-        contentPanel.add(dateSpinner);
-        y += spacing;
-
-        contentPanel.add(createLabel("Sesi:", 14, false, Color.BLACK)).setBounds(20, y, 150, 25);
-        sessionBox.setBounds(180, y, 250, 25);
-        contentPanel.add(sessionBox);
-        y += spacing;
-
-        contentPanel.add(createLabel("Gedung:", 14, false, Color.BLACK)).setBounds(20, y, 150, 25);
-        buildingBox.setBounds(180, y, 250, 25);
-        contentPanel.add(buildingBox);
-        y += spacing;
-
-        contentPanel.add(createLabel("Lantai:", 14, false, Color.BLACK)).setBounds(20, y, 150, 25);
-        floorBox.setBounds(180, y, 250, 25);
-        contentPanel.add(floorBox);
-        y += spacing;
-
-        contentPanel.add(createLabel("Ruangan:", 14, false, Color.BLACK)).setBounds(20, y, 150, 25);
-        roomBox.setBounds(180, y, 250, 25);
-        contentPanel.add(roomBox);
-        y += spacing;
-
-        contentPanel.add(createLabel("Keperluan:", 14, false, Color.BLACK)).setBounds(20, y, 150, 25);
-        purposeField.setBounds(180, y, 250, 25);
-        contentPanel.add(purposeField);
-        y += spacing;
-
-        JButton uploadBtn = new JButton("Upload PDF Surat Izin");
-        uploadBtn.setBounds(180, y, 250, 30);
-        uploadBtn.setBackground(new Color(0, 102, 204));
-        uploadBtn.setForeground(Color.WHITE);
-        uploadBtn.setFocusPainted(false);
-        uploadBtn.addActionListener(evt -> handlePDFUpload());
-        contentPanel.add(uploadBtn);
-        y += spacing + 10;
-
-        JButton submitBtn = new JButton("Kirim");
-        submitBtn.setBounds(180, y, 100, 30);
-        submitBtn.setBackground(new Color(0, 102, 204));
-        submitBtn.setForeground(Color.WHITE);
-        submitBtn.setFocusPainted(false);
-        submitBtn.addActionListener(evt -> {
-            String formattedDate = new SimpleDateFormat("yyyy-MM-dd").format((Date) dateSpinner.getValue());
-            if (selectedPDF != null && !nameField.getText().isEmpty()) {
-                notificationList.addElement("Peminjaman " + nameField.getText() + " pada " + formattedDate);
-                JOptionPane.showMessageDialog(this, "Data berhasil dikirim!");
-                selectedPDF = null;
-                renderDashboard();
-            } else {
-                JOptionPane.showMessageDialog(this, "Harap lengkapi semua data dan upload file PDF.");
-            }
-        });
-        contentPanel.add(submitBtn);
-
+        ReserveRoomPanel reservePanel = new ReserveRoomPanel(userId, role, notificationList, this::renderDashboard);
+        reservePanel.setBounds(0, 0, contentPanel.getWidth(), contentPanel.getHeight());
+        reservePanel.setSize(contentPanel.getSize());
+        reservePanel.setPreferredSize(contentPanel.getSize());
+        contentPanel.add(reservePanel);
         contentPanel.revalidate();
         contentPanel.repaint();
     }
 
-    private void handlePDFUpload() {
-        JFileChooser chooser = new JFileChooser();
-        chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-        int result = chooser.showOpenDialog(this);
-        if (result == JFileChooser.APPROVE_OPTION) {
-            File file = chooser.getSelectedFile();
-            if (file.getName().toLowerCase().endsWith(".pdf")) {
-                selectedPDF = file;
-                JOptionPane.showMessageDialog(this, "File berhasil diupload: " + file.getName());
-            } else {
-                JOptionPane.showMessageDialog(this, "Harap upload file PDF.");
-            }
-        }
+    private void showAdminMenuPanel() {
+        contentPanel.removeAll();
+        contentPanel.add(new AdminMenuPanel());
+        contentPanel.revalidate();
+        contentPanel.repaint();
     }
 
     private JPanel createCard(String title, String value, int x, int y) {
