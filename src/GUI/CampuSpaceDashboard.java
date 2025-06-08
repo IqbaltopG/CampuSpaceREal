@@ -98,7 +98,9 @@ public class CampuSpaceDashboard extends JFrame {
         welcome.setBounds(20, 20, 400, 30);
         contentPanel.add(welcome);
 
-        contentPanel.add(createCard("\uD83D\uDEAA Room Available Today", "5", 20, 80));
+        // Get real available room count
+        int availableRooms = getAvailableRoomCount();
+        contentPanel.add(createCard("\uD83D\uDEAA Room Available Today", String.valueOf(availableRooms), 20, 80));
         contentPanel.add(createCard("\uD83D\uDC64 Active Reservation", "5", 220, 80));
 
         JButton notifBtn = new JButton("  \uD83D\uDD14 Lihat Notifikasi");
@@ -181,5 +183,23 @@ public class CampuSpaceDashboard extends JFrame {
 
     private void updateTime() {
         timeLabel.setText(new SimpleDateFormat("HH : mm").format(new Date()));
+    }
+
+    private int getAvailableRoomCount() {
+        int count = 0;
+        try (java.sql.Connection conn = DB.Connection.getConnection();
+                java.sql.PreparedStatement ps = conn.prepareStatement(
+                        "SELECT COUNT(*) FROM rooms WHERE room_id NOT IN (" +
+                                "SELECT room_id FROM bookings WHERE DATE(start_time) = CURDATE() AND status IN ('Pending', 'Approved')"
+                                +
+                                ")")) {
+            java.sql.ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                count = rs.getInt(1);
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return count;
     }
 }
