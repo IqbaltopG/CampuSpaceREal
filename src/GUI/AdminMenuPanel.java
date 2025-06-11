@@ -4,26 +4,20 @@ import javax.swing.*;
 import java.awt.*;
 
 public class AdminMenuPanel extends JPanel {
-    public AdminMenuPanel() {
+    public AdminMenuPanel(CampuSpaceDashboard dashboard) {
         setLayout(null);
         setBackground(Color.WHITE);
+        setBounds(0, 0, 800, 560);
 
         JLabel title = new JLabel("Admin Menu");
         title.setFont(new Font("SansSerif", Font.BOLD, 22));
         title.setBounds(30, 30, 300, 40);
         add(title);
 
-        // Contoh tombol fitur admin
-        JButton manageUsersBtn = new JButton("Kelola User");
-        manageUsersBtn.setBounds(30, 100, 200, 40);
-        add(manageUsersBtn);
+        JButton listBookingBtn = new JButton("List Booking");
+        listBookingBtn.setBounds(30, 100, 200, 40);
+        add(listBookingBtn);
 
-        JButton manageBookingsBtn = new JButton("Kelola Booking");
-        manageBookingsBtn.setBounds(30, 160, 200, 40);
-        add(manageBookingsBtn);
-
-        // Anda bisa menambahkan aksi pada tombol di sini
-        // manageUsersBtn.addActionListener(e -> ...);
-        // manageBookingsBtn.addActionListener(e -> ...);
+        listBookingBtn.addActionListener(e -> dashboard.showBookingListPanel());
     }
 }

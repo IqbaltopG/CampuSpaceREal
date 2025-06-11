@@ -16,11 +16,15 @@ public class ReserveRoomPanel extends JPanel {
     private JButton addBtn, updateBtn, deleteBtn, clearBtn, approveBtn, rejectBtn;
     private int selectedBookingId = -1;
 
-    // Tambahkan variabel userId dan waktu
+    // Tambahkan variabel userId dan role
     private int userId;
+    private String role; // <-- Tambahkan ini
+    private CampuSpaceDashboard dashboard;
 
-    public ReserveRoomPanel(int userId, String role, DefaultListModel<String> notificationList, Runnable onSuccess) {
+    public ReserveRoomPanel(int userId, String role, DefaultListModel<String> notificationList, Runnable onSuccess, CampuSpaceDashboard dashboard) {
         this.userId = userId;
+        this.role = role;
+        this.dashboard = dashboard;
         setLayout(null);
         setBackground(Color.WHITE);
 
@@ -63,10 +67,16 @@ public class ReserveRoomPanel extends JPanel {
         add(deleteBtn);
         clearBtn.setBounds(400, 140, 90, 30);
         add(clearBtn);
-        approveBtn.setBounds(500, 140, 90, 30);
-        rejectBtn.setBounds(600, 140, 90, 30);
-        add(approveBtn);
-        add(rejectBtn);
+
+        // Tampilkan tombol approve/reject hanya untuk admin/superadmin
+        if ("admin".equals(role) || "superadmin".equals(role)) {
+            approveBtn.setBounds(500, 140, 90, 30);
+            rejectBtn.setBounds(600, 140, 90, 30);
+            add(approveBtn);
+            add(rejectBtn);
+            approveBtn.addActionListener(e -> updateStatusBooking("Approved"));
+            rejectBtn.addActionListener(e -> updateStatusBooking("Rejected"));
+        }
 
         // --- Table ---
         tableModel = new DefaultTableModel(new String[] { "ID", "Gedung", "Ruangan", "Tanggal", "Sesi", "Keperluan" },
@@ -131,13 +141,22 @@ public class ReserveRoomPanel extends JPanel {
     private void loadBookings() {
         tableModel.setRowCount(0);
         try (java.sql.Connection conn = DB.Connection.getConnection();
-                Statement st = conn.createStatement();
-                ResultSet rs = st.executeQuery(
-                        "SELECT b.booking_id, g.name as building, r.name as room, b.start_time, b.stop_time, b.status "
-                                +
-                                "FROM bookings b " +
-                                "JOIN rooms r ON b.room_id=r.room_id " +
-                                "JOIN buildings g ON r.building_id=g.building_id")) {
+             Statement st = conn.createStatement()) {
+            String sql;
+            if ("admin".equals(role) || "superadmin".equals(role)) {
+                sql = "SELECT b.booking_id, g.name as building, r.name as room, b.start_time, b.stop_time, b.status " +
+                      "FROM bookings b " +
+                      "JOIN rooms r ON b.room_id=r.room_id " +
+                      "JOIN buildings g ON r.building_id=g.building_id";
+            } else {
+                // User hanya bisa lihat booking miliknya sendiri
+                sql = "SELECT b.booking_id, g.name as building, r.name as room, b.start_time, b.stop_time, b.status " +
+                      "FROM bookings b " +
+                      "JOIN rooms r ON b.room_id=r.room_id " +
+                      "JOIN buildings g ON r.building_id=g.building_id " +
+                      "WHERE b.user_id=" + userId;
+            }
+            ResultSet rs = st.executeQuery(sql);
             while (rs.next()) {
                 tableModel.addRow(new Object[] {
                         rs.getInt("booking_id"),
@@ -340,6 +359,9 @@ public class ReserveRoomPanel extends JPanel {
             ps.executeUpdate();
 
             logAction(conn, status.toUpperCase(), selectedBookingId);
+
+            String notifMsg = "Reservasi #" + selectedBookingId + " " + (status.equals("Approved") ? "di-approve" : "di-reject");
+            dashboard.addNotification(notifMsg);
 
             JOptionPane.showMessageDialog(this, "Status booking berhasil diubah menjadi " + status + "!");
             loadBookings();
