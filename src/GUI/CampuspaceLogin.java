@@ -190,7 +190,7 @@ public class CampuspaceLogin extends JFrame {
             JOptionPane.showMessageDialog(this,
                     "Login berhasil!\nSelamat datang, " + user.username + " (" + user.role + ")",
                     "Login Sukses", JOptionPane.INFORMATION_MESSAGE);
-            // Kirim userId ke dashboard
+            // Langsung ke dashboard utama, tidak membuka panel lain di sini
             new CampuSpaceDashboard(user.userId, user.role);
             this.dispose();
         } else {

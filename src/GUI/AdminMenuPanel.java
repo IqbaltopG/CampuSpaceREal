@@ -2,22 +2,71 @@ package GUI;
 
 import javax.swing.*;
 import java.awt.*;
+import java.sql.*;
+import javax.swing.table.DefaultTableModel;
 
 public class AdminMenuPanel extends JPanel {
-    public AdminMenuPanel(CampuSpaceDashboard dashboard) {
-        setLayout(null);
-        setBackground(Color.WHITE);
-        setBounds(0, 0, 800, 560);
+    private JTable bookingTable;
+    private JTable userTable;
+    private DefaultTableModel bookingModel;
+    private DefaultTableModel userModel;
 
-        JLabel title = new JLabel("Admin Menu");
-        title.setFont(new Font("SansSerif", Font.BOLD, 22));
-        title.setBounds(30, 30, 300, 40);
-        add(title);
+    public AdminMenuPanel() {
+        setLayout(new GridLayout(2, 1, 10, 10));
 
-        JButton listBookingBtn = new JButton("List Booking");
-        listBookingBtn.setBounds(30, 100, 200, 40);
-        add(listBookingBtn);
+        // Booking Table
+        bookingModel = new DefaultTableModel(new String[] { "Booking ID", "User ID", "Room", "Date" }, 0);
+        bookingTable = new JTable(bookingModel);
+        loadBookingData();
+        add(new JScrollPane(bookingTable));
 
-        listBookingBtn.addActionListener(e -> dashboard.showBookingListPanel());
+        // User Table
+        userModel = new DefaultTableModel(new String[] { "ID", "Username", "Role" }, 0);
+        userTable = new JTable(userModel);
+        loadUserData();
+        add(new JScrollPane(userTable));
+    }
+
+    private void loadBookingData() {
+        bookingModel.setRowCount(0);
+        try (Connection conn = DB.Connection.getConnection();
+                Statement st = conn.createStatement();
+                ResultSet rs = st.executeQuery(
+                        "SELECT b.booking_id, b.start_time, b.stop_time, b.user_id, b.room_id, l.timestamp AS booking_date "
+                                +
+                                "FROM bookings b " +
+                                "JOIN logs l ON b.user_id = l.user_id")) {
+            while (rs.next()) {
+                bookingModel.addRow(new Object[] {
+                        rs.getInt("booking_id"),
+                        rs.getInt("user_id"),
+                        rs.getString("room_id"),
+                        rs.getString("booking_date") + " " + rs.getString("start_time") + " - "
+                                + rs.getString("stop_time")
+                });
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void loadUserData() {
+        userModel.setRowCount(0);
+        try (Connection conn = DB.Connection.getConnection();
+                Statement st = conn.createStatement();
+                ResultSet rs = st.executeQuery("SELECT user_id, username, role FROM user")) {
+            while (rs.next()) {
+                int userId = rs.getInt("user_id");
+                userModel.addRow(new Object[] {
+                        userId,
+                        rs.getString("username"),
+                        rs.getString("role")
+                });
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 }
+// If there was a public class SuperAdminPanel here, move it to
+// SuperAdminPanel.java in the same package.

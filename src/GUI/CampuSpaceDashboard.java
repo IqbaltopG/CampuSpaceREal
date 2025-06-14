@@ -52,9 +52,10 @@ public class CampuSpaceDashboard extends JFrame {
             adminBtn.addActionListener(evt -> showAdminMenuPanel());
         }
         if ("superadmin".equals(role)) {
-            JButton superAdminBtn = createSidebarButton("Super Admin Menu");
+            JButton superAdminBtn = createSidebarButton("Super Admin Panel");
             superAdminBtn.setBounds(20, 200, 160, 30);
             sidebar.add(superAdminBtn);
+            superAdminBtn.addActionListener(e -> new SuperAdminPanel());
         }
 
         JPanel topBar = new JPanel(new BorderLayout());
@@ -136,7 +137,8 @@ public class CampuSpaceDashboard extends JFrame {
 
     private void showReserveRoomPanel() {
         contentPanel.removeAll();
-        ReserveRoomPanel reservePanel = new ReserveRoomPanel(userId, role, notificationList, this::renderDashboard, this);
+        ReserveRoomPanel reservePanel = new ReserveRoomPanel(userId, role, notificationList, this::renderDashboard,
+                this);
         reservePanel.setBounds(0, 0, contentPanel.getWidth(), contentPanel.getHeight());
         reservePanel.setSize(contentPanel.getSize());
         reservePanel.setPreferredSize(contentPanel.getSize());
@@ -147,7 +149,9 @@ public class CampuSpaceDashboard extends JFrame {
 
     private void showAdminMenuPanel() {
         contentPanel.removeAll();
-        contentPanel.add(new AdminMenuPanel(this));
+        AdminMenuPanel adminPanel = new AdminMenuPanel();
+        adminPanel.setBounds(0, 0, contentPanel.getWidth(), contentPanel.getHeight());
+        contentPanel.add(adminPanel);
         contentPanel.revalidate();
         contentPanel.repaint();
     }
@@ -204,10 +208,11 @@ public class CampuSpaceDashboard extends JFrame {
     private int getAvailableRoomCount() {
         int count = 0;
         try (java.sql.Connection conn = DB.Connection.getConnection();
-             java.sql.PreparedStatement ps = conn.prepareStatement(
-                     "SELECT COUNT(*) FROM rooms WHERE room_id NOT IN (" +
-                             "SELECT room_id FROM bookings WHERE DATE(start_time) = CURDATE() AND status IN ('Pending', 'Approved')" +
-                             ")")) {
+                java.sql.PreparedStatement ps = conn.prepareStatement(
+                        "SELECT COUNT(*) FROM rooms WHERE room_id NOT IN (" +
+                                "SELECT room_id FROM bookings WHERE DATE(start_time) = CURDATE() AND status IN ('Pending', 'Approved')"
+                                +
+                                ")")) {
             java.sql.ResultSet rs = ps.executeQuery();
             if (rs.next()) {
                 count = rs.getInt(1);
@@ -221,8 +226,8 @@ public class CampuSpaceDashboard extends JFrame {
     private int getActiveReservationCountForUser(int userId) {
         int count = 0;
         try (java.sql.Connection conn = DB.Connection.getConnection();
-             java.sql.PreparedStatement ps = conn.prepareStatement(
-                     "SELECT COUNT(*) FROM bookings WHERE user_id=? AND status IN ('Pending', 'Approved')")) {
+                java.sql.PreparedStatement ps = conn.prepareStatement(
+                        "SELECT COUNT(*) FROM bookings WHERE user_id=? AND status IN ('Pending', 'Approved')")) {
             ps.setInt(1, userId);
             java.sql.ResultSet rs = ps.executeQuery();
             if (rs.next()) {
@@ -237,8 +242,8 @@ public class CampuSpaceDashboard extends JFrame {
     private String getUserName(int userId) {
         String name = "";
         try (java.sql.Connection conn = DB.Connection.getConnection();
-             java.sql.PreparedStatement ps = conn.prepareStatement(
-                     "SELECT username FROM user WHERE user_id=?")) {
+                java.sql.PreparedStatement ps = conn.prepareStatement(
+                        "SELECT username FROM user WHERE user_id=?")) {
             ps.setInt(1, userId);
             java.sql.ResultSet rs = ps.executeQuery();
             if (rs.next()) {

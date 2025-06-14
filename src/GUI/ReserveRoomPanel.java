@@ -6,6 +6,9 @@ import java.awt.*;
 import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.time.LocalDateTime;
+import java.sql.ResultSet;
+// import java.time.LocalDate;
 
 public class ReserveRoomPanel extends JPanel {
     private JTable table;
@@ -21,7 +24,8 @@ public class ReserveRoomPanel extends JPanel {
     private String role; // <-- Tambahkan ini
     private CampuSpaceDashboard dashboard;
 
-    public ReserveRoomPanel(int userId, String role, DefaultListModel<String> notificationList, Runnable onSuccess, CampuSpaceDashboard dashboard) {
+    public ReserveRoomPanel(int userId, String role, DefaultListModel<String> notificationList, Runnable onSuccess,
+            CampuSpaceDashboard dashboard) {
         this.userId = userId;
         this.role = role;
         this.dashboard = dashboard;
@@ -141,35 +145,75 @@ public class ReserveRoomPanel extends JPanel {
     private void loadBookings() {
         tableModel.setRowCount(0);
         try (java.sql.Connection conn = DB.Connection.getConnection();
-             Statement st = conn.createStatement()) {
+                Statement st = conn.createStatement()) {
             String sql;
             if ("admin".equals(role) || "superadmin".equals(role)) {
                 sql = "SELECT b.booking_id, g.name as building, r.name as room, b.start_time, b.stop_time, b.status " +
-                      "FROM bookings b " +
-                      "JOIN rooms r ON b.room_id=r.room_id " +
-                      "JOIN buildings g ON r.building_id=g.building_id";
+                        "FROM bookings b " +
+                        "JOIN rooms r ON b.room_id=r.room_id " +
+                        "JOIN buildings g ON r.building_id=g.building_id";
             } else {
-                // User hanya bisa lihat booking miliknya sendiri
                 sql = "SELECT b.booking_id, g.name as building, r.name as room, b.start_time, b.stop_time, b.status " +
-                      "FROM bookings b " +
-                      "JOIN rooms r ON b.room_id=r.room_id " +
-                      "JOIN buildings g ON r.building_id=g.building_id " +
-                      "WHERE b.user_id=" + userId;
+                        "FROM bookings b " +
+                        "JOIN rooms r ON b.room_id=r.room_id " +
+                        "JOIN buildings g ON r.building_id=g.building_id " +
+                        "WHERE b.user_id=" + userId;
             }
             ResultSet rs = st.executeQuery(sql);
             while (rs.next()) {
+                int bookingId = rs.getInt("booking_id");
+                String tanggalLog = getTanggalLogByBookingId(conn, bookingId);
+
+                // Ambil sesi dari jam mulai
+                String sesi = getSesiFromStartTime(rs.getTimestamp("start_time"));
+
                 tableModel.addRow(new Object[] {
-                        rs.getInt("booking_id"),
+                        bookingId,
                         rs.getString("building"),
                         rs.getString("room"),
-                        rs.getString("start_time"),
-                        rs.getString("stop_time"),
+                        tanggalLog, // tanggal dari logs
+                        sesi, // Sesi 1-4
                         rs.getString("status")
                 });
             }
         } catch (Exception ex) {
             ex.printStackTrace();
         }
+    }
+
+    // Tambahkan fungsi ini di bawah loadBookings()
+    private String getSesiFromStartTime(Timestamp startTime) {
+        if (startTime == null)
+            return "";
+        String jam = new SimpleDateFormat("HH:mm:ss").format(startTime);
+        switch (jam) {
+            case "08:00:00":
+                return "Sesi 1";
+            case "10:00:00":
+                return "Sesi 2";
+            case "13:00:00":
+                return "Sesi 3";
+            case "15:00:00":
+                return "Sesi 4";
+            default:
+                return jam;
+        }
+    }
+
+    // Fungsi untuk mengambil tanggal dari logs berdasarkan booking_id
+    private String getTanggalLogByBookingId(Connection conn, int bookingId) {
+        String tanggal = "";
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT DATE(timestamp) as tanggal FROM logs WHERE action LIKE ? ORDER BY timestamp ASC LIMIT 1")) {
+            ps.setString(1, "CREATE booking_id=" + bookingId + "%");
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                tanggal = rs.getString("tanggal");
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return tanggal;
     }
 
     private Timestamp getStartTime() {
@@ -294,11 +338,14 @@ public class ReserveRoomPanel extends JPanel {
 
     private void clearForm() {
         selectedBookingId = -1;
-        if (buildingBox.getItemCount() > 0) buildingBox.setSelectedIndex(0);
+        if (buildingBox.getItemCount() > 0)
+            buildingBox.setSelectedIndex(0);
         loadRooms();
-        if (roomBox.getItemCount() > 0) roomBox.setSelectedIndex(0);
+        if (roomBox.getItemCount() > 0)
+            roomBox.setSelectedIndex(0);
         dateSpinner.setValue(new Date());
-        if (sessionBox.getItemCount() > 0) sessionBox.setSelectedIndex(0);
+        if (sessionBox.getItemCount() > 0)
+            sessionBox.setSelectedIndex(0);
         purposeField.setText("");
         table.clearSelection();
     }
@@ -360,7 +407,26 @@ public class ReserveRoomPanel extends JPanel {
 
             logAction(conn, status.toUpperCase(), selectedBookingId);
 
-            String notifMsg = "Reservasi #" + selectedBookingId + " " + (status.equals("Approved") ? "di-approve" : "di-reject");
+            // Ambil user_id dari booking yang diubah statusnya
+            int bookingUserId = -1;
+            try (PreparedStatement ps2 = conn.prepareStatement(
+                    "SELECT user_id FROM bookings WHERE booking_id=?")) {
+                ps2.setInt(1, selectedBookingId);
+                ResultSet rs = ps2.executeQuery();
+                if (rs.next()) {
+                    bookingUserId = rs.getInt("user_id");
+                }
+            }
+
+            String notifMsg = "Reservasi #" + selectedBookingId + " "
+                    + (status.equals("Approved") ? "di-approve" : "di-reject");
+
+            // Simpan notifikasi ke database
+            if (bookingUserId != -1) {
+                DB.Notifications.addNotification(bookingUserId, notifMsg);
+            }
+
+            // Tampilkan juga di dashboard (jika user sedang login)
             dashboard.addNotification(notifMsg);
 
             JOptionPane.showMessageDialog(this, "Status booking berhasil diubah menjadi " + status + "!");
@@ -368,6 +434,65 @@ public class ReserveRoomPanel extends JPanel {
             clearForm();
         } catch (Exception ex) {
             ex.printStackTrace();
+        }
+    }
+
+    // Misal: Room memiliki 4 sesi
+    public class Room {
+        private int availableRooms;
+        private int[] sesi = new int[4]; // 0 = belum dibooking, 1 = sudah dibooking
+
+        public Room(int availableRooms) {
+            this.availableRooms = availableRooms;
+        }
+
+        public void bookSesi(int sesiKe) {
+            if (sesiKe < 0 || sesiKe >= 4)
+                return;
+            if (sesi[sesiKe] == 0) {
+                sesi[sesiKe] = 1;
+                if (isAllSesiBooked()) {
+                    availableRooms--;
+                    // Reset sesi jika ingin digunakan lagi
+                    // Arrays.fill(sesi, 0);
+                }
+            }
+        }
+
+        private boolean isAllSesiBooked() {
+            for (int s : sesi) {
+                if (s == 0)
+                    return false;
+            }
+            return true;
+        }
+
+        public int getAvailableRooms() {
+            return availableRooms;
+        }
+    }
+
+    public class RoomReservation {
+        private Connection conn;
+
+        public RoomReservation(Connection conn) {
+            this.conn = conn;
+        }
+
+        public LocalDateTime getTanggalReserveRoom(int logId) throws SQLException {
+            String sql = "SELECT timestamp FROM logs WHERE id = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setInt(1, logId);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        Timestamp timestamp = rs.getTimestamp("timestamp");
+                        if (timestamp != null) {
+                            return timestamp.toLocalDateTime();
+                        }
+                    }
+                }
+            }
+            return null;
         }
     }
 }
