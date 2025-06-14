@@ -30,12 +30,12 @@ public class AdminMenuPanel extends JPanel {
     private void loadBookingData() {
         bookingModel.setRowCount(0);
         try (Connection conn = DB.Connection.getConnection();
-                Statement st = conn.createStatement();
-                ResultSet rs = st.executeQuery(
-                        "SELECT b.booking_id, b.start_time, b.stop_time, b.user_id, b.room_id, l.timestamp AS booking_date "
-                                +
-                                "FROM bookings b " +
-                                "JOIN logs l ON b.user_id = l.user_id")) {
+             Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery(
+                     "SELECT b.booking_id, b.start_time, b.stop_time, b.user_id, b.room_id, l.timestamp AS booking_date "
+                             +
+                             "FROM bookings b " +
+                             "JOIN logs l ON b.user_id = l.user_id")) {
             while (rs.next()) {
                 bookingModel.addRow(new Object[] {
                         rs.getInt("booking_id"),
@@ -53,8 +53,8 @@ public class AdminMenuPanel extends JPanel {
     private void loadUserData() {
         userModel.setRowCount(0);
         try (Connection conn = DB.Connection.getConnection();
-                Statement st = conn.createStatement();
-                ResultSet rs = st.executeQuery("SELECT user_id, username, role FROM user")) {
+             Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery("SELECT user_id, username, role FROM user")) {
             while (rs.next()) {
                 int userId = rs.getInt("user_id");
                 userModel.addRow(new Object[] {
@@ -68,5 +68,3 @@ public class AdminMenuPanel extends JPanel {
         }
     }
 }
-// If there was a public class SuperAdminPanel here, move it to
-// SuperAdminPanel.java in the same package.
