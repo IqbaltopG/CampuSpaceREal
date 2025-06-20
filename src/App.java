@@ -1,9 +1,9 @@
 public class App {
     public static void main(String[] args) {
-        // connect to the database
+        // Connect to the database
         DB.Connection.getConnection();
 
-        // login window
+        // Show login window
         javax.swing.SwingUtilities.invokeLater(() -> {
             try {
                 new GUI.CampuspaceLogin();

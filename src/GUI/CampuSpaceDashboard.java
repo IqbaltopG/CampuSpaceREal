@@ -5,7 +5,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import javax.swing.*;
 
-public class CampuSpaceDashboard extends JFrame {
+public class CampuSpaceDashboard extends JFrame implements Notifiable {
     private final int userId;
     private final String role;
     private final String userName;
@@ -272,6 +272,7 @@ public class CampuSpaceDashboard extends JFrame {
         return name;
     }
 
+    @Override
     public void addNotification(String message) {
         notificationList.clear();
         notificationList.addElement(message);

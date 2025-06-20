@@ -2,19 +2,18 @@ package DB;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-// import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.Optional;
 
 public class Users {
-    // Mendapatkan user berdasarkan username dan password (untuk login)
+    // Authenticate user by username and password
     public static Optional<User> authenticate(String username, String password) {
         try (java.sql.Connection conn = DB.Connection.getConnection();
-                PreparedStatement ps = conn.prepareStatement(
-                        "SELECT user_id, username, role FROM user WHERE username=? AND password=?")) {
+             PreparedStatement ps = conn.prepareStatement(
+                     "SELECT user_id, username, role FROM user WHERE username=? AND password=?")) {
             ps.setString(1, username);
-            ps.setString(2, hashPassword(password)); // hash password sebelum query
+            ps.setString(2, hashPassword(password));
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
                 User user = new User(
@@ -29,11 +28,11 @@ public class Users {
         return Optional.empty();
     }
 
-    // Mendapatkan user berdasarkan user_id
+    // Get user by user_id
     public static Optional<User> getUserById(int userId) {
         try (java.sql.Connection conn = DB.Connection.getConnection();
-                PreparedStatement ps = conn.prepareStatement(
-                        "SELECT user_id, username, role FROM user WHERE user_id=?")) {
+             PreparedStatement ps = conn.prepareStatement(
+                     "SELECT user_id, username, role FROM user WHERE user_id=?")) {
             ps.setInt(1, userId);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
@@ -49,13 +48,13 @@ public class Users {
         return Optional.empty();
     }
 
-    // Menambahkan user baru
+    // Add new user
     public static boolean addUser(String username, String password, String role) {
         try (java.sql.Connection conn = DB.Connection.getConnection();
-                PreparedStatement ps = conn.prepareStatement(
-                        "INSERT INTO user (username, password, role) VALUES (?, ?, ?)")) {
+             PreparedStatement ps = conn.prepareStatement(
+                     "INSERT INTO user (username, password, role) VALUES (?, ?, ?)")) {
             ps.setString(1, username);
-            ps.setString(2, password); // hash jika perlu
+            ps.setString(2, hashPassword(password));
             ps.setString(3, role);
             return ps.executeUpdate() > 0;
         } catch (Exception ex) {
@@ -78,7 +77,7 @@ public class Users {
         }
     }
 
-    // Class User (inner class)
+    // User inner class
     public static class User {
         public final int userId;
         public final String username;

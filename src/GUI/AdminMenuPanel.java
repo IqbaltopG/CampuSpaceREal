@@ -6,7 +6,7 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.*;
 
-public class AdminMenuPanel extends JPanel {
+public class AdminMenuPanel extends BasePanel {
     private final JTable bookingTable;
     private final JTable userTable;
     private final DefaultTableModel bookingModel;
@@ -24,7 +24,7 @@ public class AdminMenuPanel extends JPanel {
         setBackground(Color.WHITE);
 
         bookingModel = new DefaultTableModel(
-                new String[] { "Booking ID", "User ID", "Room", "Date & Time", "PDF" }, 0) {
+                new String[] { "Booking ID", "User ID", "Room", "Tanggal Booking & Waktu", "PDF" }, 0) {
             @Override
             public boolean isCellEditable(int r, int c) {
                 return false;
@@ -64,6 +64,27 @@ public class AdminMenuPanel extends JPanel {
 
         loadBookingData();
         loadUserData();
+    }
+
+    private void openSelectedPdf() {
+        int selectedRow = bookingTable.getSelectedRow();
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(this, "Pilih baris booking terlebih dahulu.", "Info",
+                    JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        String pdfPath = (String) bookingModel.getValueAt(selectedRow, 4);
+        if (pdfPath == null || pdfPath.trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "PDF tidak tersedia untuk booking ini.", "Info",
+                    JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        try {
+            Desktop.getDesktop().open(new java.io.File(pdfPath));
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Gagal membuka PDF: " + ex.getMessage(), "Error",
+                    JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private void styleTable(JTable table) {
@@ -114,21 +135,25 @@ public class AdminMenuPanel extends JPanel {
     private void loadBookingData() {
         bookingModel.setRowCount(0);
         try (Connection conn = DB.Connection.getConnection();
-                Statement st = conn.createStatement();
-                ResultSet rs = st.executeQuery(
-                        "SELECT b.booking_id, b.user_id, b.room_id, b.start_time, b.stop_time, b.pdf_path, l.timestamp AS booking_date "
-                                +
-                                "FROM bookings b " +
-                                "LEFT JOIN logs l ON b.booking_id = l.booking_id AND l.action = 'CREATE'")) {
-
+             Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery(
+                "SELECT b.booking_id, b.user_id, b.room_id, b.start_time, b.stop_time, b.status, b.purpose, b.pdf_path " +
+                "FROM bookings b " +
+                "JOIN rooms r ON b.room_id = r.room_id " +
+                "JOIN user u ON b.user_id = u.user_id")) {
             while (rs.next()) {
+                int bookingId = rs.getInt("booking_id");
+                String bookingDate = getBookingDateFromLogs(conn, bookingId);
+                String startTime = rs.getString("start_time");
+                String stopTime = rs.getString("stop_time");
+                String dateTime = (bookingDate.isEmpty() ? "" : bookingDate + " ") + startTime + " - " + stopTime;
+
                 bookingModel.addRow(new Object[] {
-                        rs.getInt("booking_id"),
-                        rs.getInt("user_id"),
-                        rs.getString("room_id"),
-                        (rs.getString("booking_date") != null ? rs.getString("booking_date") + " " : "")
-                                + rs.getString("start_time") + " - " + rs.getString("stop_time"),
-                        rs.getString("pdf_path")
+                    bookingId,
+                    rs.getInt("user_id"),
+                    rs.getString("room_id"),
+                    dateTime,
+                    rs.getString("pdf_path")
                 });
             }
         } catch (SQLException e) {
@@ -136,12 +161,25 @@ public class AdminMenuPanel extends JPanel {
         }
     }
 
+    private String getBookingDateFromLogs(Connection conn, int bookingId) {
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT DATE(timestamp) as tanggal FROM logs WHERE action LIKE ? ORDER BY timestamp ASC LIMIT 1")) {
+            ps.setString(1, "CREATE booking_id=" + bookingId + "%");
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getString("tanggal");
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return "";
+    }
+
     private void loadUserData() {
         userModel.setRowCount(0);
         try (Connection conn = DB.Connection.getConnection();
                 Statement st = conn.createStatement();
                 ResultSet rs = st.executeQuery("SELECT user_id, username, role FROM user")) {
-
             while (rs.next()) {
                 userModel.addRow(new Object[] {
                         rs.getInt("user_id"),
@@ -154,21 +192,9 @@ public class AdminMenuPanel extends JPanel {
         }
     }
 
-    private void openSelectedPdf() {
-        int row = bookingTable.getSelectedRow();
-        if (row == -1) {
-            JOptionPane.showMessageDialog(this, "Pilih booking terlebih dahulu!");
-            return;
-        }
-        String pdfPath = (String) bookingModel.getValueAt(row, 4);
-        if (pdfPath == null || pdfPath.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Tidak ada file PDF untuk booking ini.");
-            return;
-        }
-        try {
-            Desktop.getDesktop().open(new java.io.File(pdfPath));
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Gagal membuka file PDF.");
-        }
+    @Override
+    public void refreshData() {
+        loadBookingData();
+        loadUserData();
     }
 }
