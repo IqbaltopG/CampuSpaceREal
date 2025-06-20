@@ -1,13 +1,13 @@
 package GUI;
 
-import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.sql.*;
 import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.time.LocalDateTime;
-import java.sql.ResultSet;
+import java.util.Date;
+import java.io.File;
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
 // import java.time.LocalDate;
 
 public class ReserveRoomPanel extends JPanel {
@@ -16,8 +16,9 @@ public class ReserveRoomPanel extends JPanel {
     private JComboBox<String> buildingBox, roomBox, sessionBox;
     private JTextField purposeField;
     private JSpinner dateSpinner;
-    private JButton addBtn, updateBtn, deleteBtn, clearBtn, approveBtn, rejectBtn;
+    private JButton addBtn, updateBtn, deleteBtn, clearBtn, approveBtn, rejectBtn, uploadPdfBtn;
     private int selectedBookingId = -1;
+    private File selectedPdfFile = null;
 
     // Tambahkan variabel userId dan role
     private int userId;
@@ -71,6 +72,9 @@ public class ReserveRoomPanel extends JPanel {
         add(deleteBtn);
         clearBtn.setBounds(400, 140, 90, 30);
         add(clearBtn);
+        uploadPdfBtn = new JButton("Upload PDF");
+        uploadPdfBtn.setBounds(520, 100, 120, 25);
+        add(uploadPdfBtn);
 
         // Tampilkan tombol approve/reject hanya untuk admin/superadmin
         if ("admin".equals(role) || "superadmin".equals(role)) {
@@ -110,6 +114,8 @@ public class ReserveRoomPanel extends JPanel {
 
         // --- Initial ---
         loadRooms();
+
+        uploadPdfBtn.addActionListener(e -> uploadPdfFile());
     }
 
     private void loadBuildings() {
@@ -268,14 +274,26 @@ public class ReserveRoomPanel extends JPanel {
     private void createBooking() {
         try (java.sql.Connection conn = DB.Connection.getConnection()) {
             String roomId = roomBox.getSelectedItem().toString().split(" - ")[0];
+            String pdfPath = null;
+            if (selectedPdfFile != null) {
+                // Simpan ke folder pdf di dalam src
+                File uploadsDir = new File("src/pdf");
+                if (!uploadsDir.exists())
+                    uploadsDir.mkdirs();
+                File destFile = new File(uploadsDir, System.currentTimeMillis() + "_" + selectedPdfFile.getName());
+                java.nio.file.Files.copy(selectedPdfFile.toPath(), destFile.toPath(),
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                pdfPath = destFile.getAbsolutePath();
+            }
             PreparedStatement ps = conn.prepareStatement(
-                    "INSERT INTO bookings (user_id, room_id, status, start_time, stop_time) VALUES (?, ?, ?, ?, ?)",
+                    "INSERT INTO bookings (user_id, room_id, status, start_time, stop_time, pdf_path) VALUES (?, ?, ?, ?, ?, ?)",
                     Statement.RETURN_GENERATED_KEYS);
             ps.setInt(1, userId);
             ps.setInt(2, Integer.parseInt(roomId));
             ps.setString(3, "Pending");
             ps.setTimestamp(4, getStartTime());
             ps.setTimestamp(5, getStopTime());
+            ps.setString(6, pdfPath);
             ps.executeUpdate();
 
             ResultSet keys = ps.getGeneratedKeys();
@@ -288,6 +306,7 @@ public class ReserveRoomPanel extends JPanel {
             JOptionPane.showMessageDialog(this, "Booking berhasil ditambahkan!");
             loadBookings();
             clearForm();
+            selectedPdfFile = null;
         } catch (Exception ex) {
             ex.printStackTrace();
         }
@@ -434,6 +453,16 @@ public class ReserveRoomPanel extends JPanel {
             clearForm();
         } catch (Exception ex) {
             ex.printStackTrace();
+        }
+    }
+
+    private void uploadPdfFile() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("PDF Documents", "pdf"));
+        int result = fileChooser.showOpenDialog(this);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            selectedPdfFile = fileChooser.getSelectedFile();
+            JOptionPane.showMessageDialog(this, "File terpilih: " + selectedPdfFile.getName());
         }
     }
 

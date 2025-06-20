@@ -4,12 +4,11 @@ import java.awt.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import javax.swing.*;
-import javax.swing.Timer;
 
 public class CampuSpaceDashboard extends JFrame {
-    private int userId;
-    private String role;
-    private String userName;
+    private final int userId;
+    private final String role;
+    private final String userName;
     private final JLabel timeLabel;
     private final JPanel contentPanel;
     private final DefaultListModel<String> notificationList = new DefaultListModel<>();
@@ -49,8 +48,9 @@ public class CampuSpaceDashboard extends JFrame {
             JButton adminBtn = createSidebarButton("⚙️ Admin Panel");
             adminBtn.setBounds(20, 160, 160, 30);
             sidebar.add(adminBtn);
-            adminBtn.addActionListener(evt -> showAdminMenuPanel());
+            adminBtn.addActionListener(e -> showAdminMenuPanel());
         }
+
         if ("superadmin".equals(role)) {
             JButton superAdminBtn = createSidebarButton("Super Admin Panel");
             superAdminBtn.setBounds(20, 200, 160, 30);
@@ -67,7 +67,7 @@ public class CampuSpaceDashboard extends JFrame {
         timeLabel.setHorizontalAlignment(SwingConstants.RIGHT);
         timeLabel.setPreferredSize(new Dimension(200, 40));
         updateTime();
-        new Timer(1000, evt -> updateTime()).start();
+        new Timer(1000, e -> updateTime()).start();
         topBar.add(timeLabel, BorderLayout.EAST);
 
         JButton logoutBtn = new JButton("Logout");
@@ -85,8 +85,8 @@ public class CampuSpaceDashboard extends JFrame {
         contentPanel.setBounds(200, 40, 800, 560);
         contentPanel.setBackground(Color.WHITE);
 
-        dashBtn.addActionListener(evt -> renderDashboard());
-        reserveBtn.addActionListener(evt -> showReserveRoomPanel());
+        dashBtn.addActionListener(e -> renderDashboard());
+        reserveBtn.addActionListener(e -> showReserveRoomPanel());
 
         renderDashboard();
 
@@ -117,7 +117,7 @@ public class CampuSpaceDashboard extends JFrame {
         notifBtn.setForeground(Color.WHITE);
         notifBtn.setBounds(20, 200, 380, 50);
         notifBtn.setFocusPainted(false);
-        notifBtn.addActionListener(evt -> showNotificationPopup());
+        notifBtn.addActionListener(e -> showNotificationPopup());
 
         contentPanel.add(notifBtn);
         contentPanel.revalidate();
@@ -126,19 +126,37 @@ public class CampuSpaceDashboard extends JFrame {
 
     private void showNotificationPopup() {
         if (notificationList.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Tidak ada notifikasi baru.");
+            JDialog dialog = new JDialog(this, "Notifikasi", true);
+            dialog.setLayout(new BorderLayout());
+            JLabel label = new JLabel("Tidak ada notifikasi baru.", SwingConstants.CENTER);
+            label.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+            dialog.add(label, BorderLayout.CENTER);
+            dialog.setSize(300, 120);
+            dialog.setLocationRelativeTo(this);
+            new javax.swing.Timer(2000, e -> dialog.dispose()).start();
+            dialog.setVisible(true);
         } else {
             JList<String> notifView = new JList<>(notificationList);
             JScrollPane scroll = new JScrollPane(notifView);
             scroll.setPreferredSize(new Dimension(300, 150));
-            JOptionPane.showMessageDialog(this, scroll, "Notifikasi", JOptionPane.INFORMATION_MESSAGE);
+
+            JDialog dialog = new JDialog(this, "Notifikasi", true);
+            dialog.setLayout(new BorderLayout());
+            dialog.add(scroll, BorderLayout.CENTER);
+            dialog.setSize(350, 220);
+            dialog.setLocationRelativeTo(this);
+
+            new javax.swing.Timer(5000, e -> {
+                dialog.dispose();
+                notificationList.clear();
+            }).start();
+            dialog.setVisible(true);
         }
     }
 
     private void showReserveRoomPanel() {
         contentPanel.removeAll();
-        ReserveRoomPanel reservePanel = new ReserveRoomPanel(userId, role, notificationList, this::renderDashboard,
-                this);
+        ReserveRoomPanel reservePanel = new ReserveRoomPanel(userId, role, notificationList, this::renderDashboard, this);
         reservePanel.setBounds(0, 0, contentPanel.getWidth(), contentPanel.getHeight());
         reservePanel.setSize(contentPanel.getSize());
         reservePanel.setPreferredSize(contentPanel.getSize());
@@ -208,11 +226,10 @@ public class CampuSpaceDashboard extends JFrame {
     private int getAvailableRoomCount() {
         int count = 0;
         try (java.sql.Connection conn = DB.Connection.getConnection();
-                java.sql.PreparedStatement ps = conn.prepareStatement(
-                        "SELECT COUNT(*) FROM rooms WHERE room_id NOT IN (" +
-                                "SELECT room_id FROM bookings WHERE DATE(start_time) = CURDATE() AND status IN ('Pending', 'Approved')"
-                                +
-                                ")")) {
+             java.sql.PreparedStatement ps = conn.prepareStatement(
+                     "SELECT COUNT(*) FROM rooms WHERE room_id NOT IN (" +
+                             "SELECT room_id FROM bookings WHERE DATE(start_time) = CURDATE() AND status IN ('Pending', 'Approved')" +
+                             ")")) {
             java.sql.ResultSet rs = ps.executeQuery();
             if (rs.next()) {
                 count = rs.getInt(1);
@@ -226,8 +243,8 @@ public class CampuSpaceDashboard extends JFrame {
     private int getActiveReservationCountForUser(int userId) {
         int count = 0;
         try (java.sql.Connection conn = DB.Connection.getConnection();
-                java.sql.PreparedStatement ps = conn.prepareStatement(
-                        "SELECT COUNT(*) FROM bookings WHERE user_id=? AND status IN ('Pending', 'Approved')")) {
+             java.sql.PreparedStatement ps = conn.prepareStatement(
+                     "SELECT COUNT(*) FROM bookings WHERE user_id=? AND status IN ('Pending', 'Approved')")) {
             ps.setInt(1, userId);
             java.sql.ResultSet rs = ps.executeQuery();
             if (rs.next()) {
@@ -242,8 +259,8 @@ public class CampuSpaceDashboard extends JFrame {
     private String getUserName(int userId) {
         String name = "";
         try (java.sql.Connection conn = DB.Connection.getConnection();
-                java.sql.PreparedStatement ps = conn.prepareStatement(
-                        "SELECT username FROM user WHERE user_id=?")) {
+             java.sql.PreparedStatement ps = conn.prepareStatement(
+                     "SELECT username FROM user WHERE user_id=?")) {
             ps.setInt(1, userId);
             java.sql.ResultSet rs = ps.executeQuery();
             if (rs.next()) {
@@ -256,6 +273,7 @@ public class CampuSpaceDashboard extends JFrame {
     }
 
     public void addNotification(String message) {
+        notificationList.clear();
         notificationList.addElement(message);
     }
 }

@@ -1,19 +1,16 @@
 package GUI;
 
 import DB.Users;
-
-import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.Optional;
+import javax.swing.*;
 
 public class CampuspaceLogin extends JFrame {
-    private JTextField usernameField;
-    private JPasswordField passwordField;
+    private final JTextField usernameField;
+    private final JPasswordField passwordField;
 
     public CampuspaceLogin() {
-        // Configure main window
+
         setTitle("Campuspace");
         setSize(400, 500);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -21,13 +18,11 @@ public class CampuspaceLogin extends JFrame {
         setLayout(new BorderLayout());
         getContentPane().setBackground(new Color(240, 240, 240));
 
-        // Create header panel
         JPanel headerPanel = new JPanel();
         headerPanel.setBackground(new Color(240, 240, 240));
         headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.Y_AXIS));
         headerPanel.setBorder(BorderFactory.createEmptyBorder(40, 0, 20, 0));
 
-        // Add title
         JLabel titleLabel = new JLabel("Campuspace");
         titleLabel.setFont(new Font("Helvetica", Font.BOLD, 24));
         titleLabel.setForeground(new Color(51, 51, 51));
@@ -36,13 +31,11 @@ public class CampuspaceLogin extends JFrame {
 
         add(headerPanel, BorderLayout.NORTH);
 
-        // Create login panel
         JPanel loginPanel = new JPanel();
         loginPanel.setBackground(new Color(240, 240, 240));
         loginPanel.setLayout(new BoxLayout(loginPanel, BoxLayout.Y_AXIS));
         loginPanel.setBorder(BorderFactory.createEmptyBorder(0, 40, 0, 40));
 
-        // Add login heading
         JLabel loginLabel = new JLabel("Login");
         loginLabel.setFont(new Font("Helvetica", Font.PLAIN, 16));
         loginLabel.setForeground(new Color(68, 68, 68));
@@ -50,7 +43,6 @@ public class CampuspaceLogin extends JFrame {
         loginLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 20, 0));
         loginPanel.add(loginLabel);
 
-        // Add username components
         JPanel usernamePanel = new JPanel();
         usernamePanel.setBackground(new Color(240, 240, 240));
         usernamePanel.setLayout(new BoxLayout(usernamePanel, BoxLayout.Y_AXIS));
@@ -72,7 +64,6 @@ public class CampuspaceLogin extends JFrame {
         loginPanel.add(usernamePanel);
         loginPanel.add(Box.createRigidArea(new Dimension(0, 15)));
 
-        // Add password components
         JPanel passwordPanel = new JPanel();
         passwordPanel.setBackground(new Color(240, 240, 240));
         passwordPanel.setLayout(new BoxLayout(passwordPanel, BoxLayout.Y_AXIS));
@@ -94,7 +85,6 @@ public class CampuspaceLogin extends JFrame {
         loginPanel.add(passwordPanel);
         loginPanel.add(Box.createRigidArea(new Dimension(0, 30)));
 
-        // Add login button
         JButton loginButton = new JButton("LOGIN");
         loginButton.setFont(new Font("Helvetica", Font.BOLD, 12));
         loginButton.setForeground(Color.WHITE);
@@ -106,28 +96,21 @@ public class CampuspaceLogin extends JFrame {
         loginButton.setMaximumSize(new Dimension(150, 40));
         loginButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        // Add hover effects
         loginButton.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
             public void mouseEntered(java.awt.event.MouseEvent evt) {
                 loginButton.setBackground(new Color(51, 103, 214));
             }
 
+            @Override
             public void mouseExited(java.awt.event.MouseEvent evt) {
                 loginButton.setBackground(new Color(66, 133, 244));
             }
         });
 
-        // Add action listener for login button
-        loginButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                handleLogin();
-            }
-        });
-
+        loginButton.addActionListener(e -> handleLogin());
         loginPanel.add(loginButton);
 
-        // Add register button
         JButton registerButton = new JButton("REGISTER");
         registerButton.setFont(new Font("Helvetica", Font.BOLD, 12));
         registerButton.setForeground(Color.WHITE);
@@ -139,31 +122,25 @@ public class CampuspaceLogin extends JFrame {
         registerButton.setMaximumSize(new Dimension(150, 40));
         registerButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        // Add hover effects
         registerButton.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
             public void mouseEntered(java.awt.event.MouseEvent evt) {
                 registerButton.setBackground(new Color(42, 148, 73));
             }
 
+            @Override
             public void mouseExited(java.awt.event.MouseEvent evt) {
                 registerButton.setBackground(new Color(52, 168, 83));
             }
         });
 
-        // Add action listener for register button
-        registerButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                new CampuspaceRegister(); // Open the registration form
-            }
-        });
+        registerButton.addActionListener(e -> new CampuspaceRegister());
 
-        loginPanel.add(Box.createRigidArea(new Dimension(0, 15))); // Add spacing
+        loginPanel.add(Box.createRigidArea(new Dimension(0, 15)));
         loginPanel.add(registerButton);
 
         add(loginPanel, BorderLayout.CENTER);
 
-        // Add footer
         JPanel footerPanel = new JPanel();
         footerPanel.setBackground(new Color(240, 240, 240));
         footerPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 20, 0));
@@ -175,7 +152,6 @@ public class CampuspaceLogin extends JFrame {
 
         add(footerPanel, BorderLayout.SOUTH);
 
-        // Make window visible
         setVisible(true);
     }
 
@@ -190,7 +166,6 @@ public class CampuspaceLogin extends JFrame {
             JOptionPane.showMessageDialog(this,
                     "Login berhasil!\nSelamat datang, " + user.username + " (" + user.role + ")",
                     "Login Sukses", JOptionPane.INFORMATION_MESSAGE);
-            // Langsung ke dashboard utama, tidak membuka panel lain di sini
             new CampuSpaceDashboard(user.userId, user.role);
             this.dispose();
         } else {
@@ -201,7 +176,6 @@ public class CampuspaceLogin extends JFrame {
     }
 
     public static void main(String[] args) {
-        // Use SwingUtilities to ensure thread safety
-        SwingUtilities.invokeLater(() -> new CampuspaceLogin());
+        SwingUtilities.invokeLater(CampuspaceLogin::new);
     }
 }

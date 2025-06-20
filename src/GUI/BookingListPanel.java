@@ -1,9 +1,9 @@
 package GUI;
 
-import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.sql.*;
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
 
 public class BookingListPanel extends JPanel {
     public BookingListPanel() {
@@ -15,7 +15,6 @@ public class BookingListPanel extends JPanel {
         JScrollPane scroll = new JScrollPane(table);
         add(scroll, BorderLayout.CENTER);
 
-        // Ambil data booking dari database
         try (
             java.sql.Connection conn = DB.Connection.getConnection();
             Statement st = conn.createStatement();
